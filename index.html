@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NEXA — Social × AI × 4D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07050d;
+    --bg-2:#0c0917;
+    --glass:rgba(255,255,255,.045);
+    --glass-hi:rgba(255,255,255,.09);
+    --border:rgba(255,255,255,.09);
+    --violet:#8b6bff;
+    --violet-2:#5b3bff;
+    --cyan:#33e6d8;
+    --magenta:#ff4fd8;
+    --text:#f3f0ff;
+    --text-dim:#a79fc4;
+    --text-mute:#6f6790;
+    --radius:20px;
+    --nano:40px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(139,107,255,.25), transparent 60%),
+      radial-gradient(900px 500px at 100% 10%, rgba(51,230,216,.14), transparent 55%),
+      var(--bg);
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    overflow:hidden;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important; transition-duration:.001ms !important;}
+  }
+
+  /* ---------- floating ambient bg objects ---------- */
+  .ambient{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden;}
+  .orb-bg{position:absolute; border-radius:50%; filter:blur(2px); opacity:.5; animation:float 9s ease-in-out infinite;}
+  @keyframes float{0%,100%{transform:translateY(0) translateX(0);} 50%{transform:translateY(-22px) translateX(10px);}}
+
+  /* ---------- phone shell ---------- */
+  .phone{
+    position:relative; z-index:1;
+    width:390px; height:844px;
+    border-radius:52px;
+    background:linear-gradient(180deg, var(--bg-2), var(--bg));
+    border:1px solid var(--border);
+    box-shadow: 0 0 0 10px #050309, 0 40px 90px rgba(0,0,0,.6), 0 0 120px rgba(139,107,255,.12) inset;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .statusbar{
+    height:46px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+    padding:0 26px; font-size:13px; font-weight:600; color:var(--text); letter-spacing:.02em; z-index:5;
+  }
+  .statusbar .dot{width:5px;height:5px;border-radius:50%;background:var(--text-dim);display:inline-block;margin:0 3px;}
+
+  .screens{flex:1; position:relative; overflow:hidden;}
+  .screen{
+    position:absolute; inset:0; overflow-y:auto; padding-bottom:100px;
+    opacity:0; pointer-events:none; transform:translateY(8px);
+    transition:opacity .28s ease, transform .28s ease;
+    scrollbar-width:none;
+  }
+  .screen::-webkit-scrollbar{display:none;}
+  .screen.active{opacity:1; pointer-events:auto; transform:translateY(0);}
+
+  /* ---------- top header ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 18px 14px;
+    position:sticky; top:0; z-index:4;
+    background:linear-gradient(180deg, var(--bg-2) 60%, transparent);
+  }
+  .logo{
+    font-family:'Sora',sans-serif; font-weight:800; font-size:21px; letter-spacing:.01em;
+    background:linear-gradient(90deg, var(--cyan), var(--violet) 60%, var(--magenta));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .topbar-icons{display:flex; gap:8px;}
+
+  /* ---------- nano buttons ---------- */
+  .nano{
+    width:var(--nano); height:var(--nano); border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--glass); border:1px solid var(--border);
+    backdrop-filter:blur(14px);
+    color:var(--text); cursor:pointer; user-select:none;
+    transition:transform .15s cubic-bezier(.34,1.56,.64,1), background .2s, box-shadow .2s;
+  }
+  .nano:active{transform:scale(.86);}
+  .nano.on{
+    background:linear-gradient(140deg, rgba(139,107,255,.35), rgba(51,230,216,.2));
+    border-color:rgba(139,107,255,.6);
+    box-shadow:0 0 0 1px rgba(139,107,255,.4), 0 0 18px rgba(139,107,255,.35);
+  }
+  .nano svg{width:19px;height:19px;}
+  .nano.pill{width:auto; padding:0 14px; border-radius:20px; gap:6px; font-size:13px; font-weight:600;}
+  .nano.round{border-radius:50%;}
+
+  /* burst particles on like */
+  .burst{position:absolute; inset:0; pointer-events:none;}
+  .burst span{
+    position:absolute; top:50%; left:50%; width:5px; height:5px; border-radius:50%;
+    background:var(--magenta); opacity:0;
+  }
+  @keyframes burstfly{
+    0%{opacity:1; transform:translate(-50%,-50%) scale(1);}
+    100%{opacity:0; transform:translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(.3);}
+  }
+  .burst.play span{animation:burstfly .6s ease-out forwards;}
+
+  /* ---------- stories rail ---------- */
+  .stories{display:flex; gap:14px; padding:2px 18px 18px; overflow-x:auto;}
+  .story{display:flex; flex-direction:column; align-items:center; gap:6px; flex:0 0 auto; width:66px;}
+  .story .ring{
+    width:62px; height:62px; border-radius:50%; padding:2.5px;
+    background:conic-gradient(from 120deg, var(--cyan), var(--violet), var(--magenta), var(--cyan));
+    display:flex; align-items:center; justify-content:center;
+  }
+  .story.seen .ring{background:rgba(255,255,255,.14);}
+  .story .avatar{
+    width:100%; height:100%; border-radius:50%; background:var(--bg-2);
+    display:flex; align-items:center; justify-content:center; font-size:22px; border:2px solid var(--bg-2);
+  }
+  .story span{font-size:11px; color:var(--text-dim); max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .story.you .ring{background:rgba(255,255,255,.14);}
+  .story .plus{position:relative;}
+  .story .plus::after{
+    content:"+"; position:absolute; bottom:-2px; right:-2px; width:18px; height:18px; border-radius:50%;
+    background:var(--violet); font-size:13px; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg-2); font-weight:700;
+  }
+
+  /* ---------- post card ---------- */
+  .post{margin:0 14px 22px; border-radius:var(--radius); background:var(--glass); border:1px solid var(--border); overflow:hidden;}
+  .post-head{display:flex; align-items:center; gap:10px; padding:12px 14px;}
+  .post-head .avatar{width:34px;height:34px;border-radius:50%; display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .post-head .name{font-weight:600; font-size:13.5px;}
+  .post-head .meta{font-size:11px; color:var(--text-mute);}
+  .post-head .more{margin-left:auto;}
+  .post-img{
+    height:390px; position:relative; display:flex; align-items:center; justify-content:center; font-size:56px;
+    overflow:hidden;
+  }
+  .post-img::before{content:""; position:absolute; inset:0; background-image:radial-gradient(circle at 30% 20%, rgba(255,255,255,.14), transparent 40%);}
+  .post-actions{display:flex; align-items:center; gap:14px; padding:12px 14px 4px;}
+  .post-actions .icon-btn{position:relative; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  .post-actions .icon-btn svg{width:24px;height:24px; transition:transform .16s cubic-bezier(.34,1.56,.64,1);}
+  .post-actions .icon-btn:active svg{transform:scale(.8);}
+  .post-actions .icon-btn.liked svg{fill:var(--magenta); stroke:var(--magenta);}
+  .post-actions .icon-btn.saved svg{fill:var(--cyan); stroke:var(--cyan);}
+  .post-actions .spacer{flex:1;}
+  .post-likes{padding:2px 14px; font-size:13px; font-weight:600;}
+  .post-caption{padding:4px 14px 4px; font-size:13.5px; line-height:1.45; color:var(--text-dim);}
+  .post-caption b{color:var(--text); font-weight:600;}
+  .post-comments-link{padding:2px 14px 4px; font-size:12.5px; color:var(--text-mute); cursor:pointer;}
+  .post-time{padding:2px 14px 14px; font-size:10.5px; color:var(--text-mute); text-transform:uppercase; letter-spacing:.05em;}
+
+  /* ---------- search / explore ---------- */
+  .search-bar{margin:0 18px 14px; display:flex; align-items:center; gap:8px; background:var(--glass); border:1px solid var(--border); border-radius:14px; padding:10px 12px;}
+  .search-bar input{background:none; border:none; outline:none; color:var(--text); font-size:14px; width:100%; font-family:'Inter';}
+  .search-bar input::placeholder{color:var(--text-mute);}
+  .chips{display:flex; gap:8px; padding:0 18px 16px; overflow-x:auto;}
+  .chip{flex:0 0 auto; padding:7px 14px; border-radius:20px; background:var(--glass); border:1px solid var(--border); font-size:12.5px; color:var(--text-dim); white-space:nowrap;}
+  .explore-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:3px; padding:0 3px;}
+  .explore-cell{aspect-ratio:1/1.15; display:flex; align-items:center; justify-content:center; font-size:26px; position:relative;}
+  .explore-cell.big{grid-row:span 2; grid-column:span 2; aspect-ratio:auto;}
+
+  /* ---------- reels ---------- */
+  .reels-wrap{padding:0; height:100%;}
+  .reel{
+    height:640px; margin:0 14px 14px; border-radius:26px; position:relative; overflow:hidden;
+    display:flex; align-items:flex-end;
+  }
+  .reel-shade{position:absolute; inset:0; background:linear-gradient(0deg, rgba(0,0,0,.55), transparent 45%, rgba(0,0,0,.15));}
+  .reel-info{position:relative; z-index:2; padding:16px; width:76%;}
+  .reel-info .user{font-weight:700; font-size:13.5px; display:flex; align-items:center; gap:6px;}
+  .reel-info .cap{font-size:12.5px; color:#e9e4ff; margin-top:4px; line-height:1.4;}
+  .reel-info .audio{font-size:11px; color:var(--text-dim); margin-top:6px;}
+  .reel-rail{position:absolute; right:10px; bottom:16px; z-index:2; display:flex; flex-direction:column; gap:16px; align-items:center;}
+  .reel-rail .icon-btn{display:flex; flex-direction:column; align-items:center; gap:3px;}
+  .reel-rail .icon-btn svg{width:26px;height:26px;}
+  .reel-rail .count{font-size:11px; font-weight:600;}
+  .reel-emoji{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:70px; opacity:.9;}
+
+  /* ---------- profile ---------- */
+  .profile-head{padding:8px 18px 6px; display:flex; gap:20px; align-items:center;}
+  .profile-avatar{width:84px;height:84px;border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:36px; flex:0 0 auto; border:2px solid var(--border);
+    background:conic-gradient(from 120deg, var(--cyan), var(--violet), var(--magenta), var(--cyan)); padding:3px;}
+  .profile-avatar div{width:100%;height:100%;border-radius:50%;background:var(--bg-2); display:flex;align-items:center;justify-content:center;}
+  .stat{text-align:center;}
+  .stat b{display:block; font-size:16px;}
+  .stat span{font-size:11.5px; color:var(--text-mute);}
+  .stat-row{display:flex; gap:22px; flex:1; justify-content:space-around;}
+  .profile-bio{padding:12px 18px 4px;}
+  .profile-bio .name{font-weight:700; font-size:14px;}
+  .profile-bio .bio{font-size:13px; color:var(--text-dim); margin-top:4px; line-height:1.5;}
+  .profile-bio .link{font-size:13px; color:var(--cyan); margin-top:4px;}
+  .profile-actions{display:flex; gap:8px; padding:14px 18px;}
+  .btn{flex:1; text-align:center; padding:10px; border-radius:12px; font-size:13.5px; font-weight:600; cursor:pointer; border:1px solid var(--border);}
+  .btn.primary{background:linear-gradient(120deg, var(--violet), var(--violet-2)); border-color:transparent;}
+  .btn.ghost{background:var(--glass);}
+  .highlights{display:flex; gap:16px; padding:6px 18px 18px; overflow-x:auto;}
+  .highlight{display:flex; flex-direction:column; align-items:center; gap:6px; flex:0 0 auto;}
+  .highlight .circle{width:58px;height:58px;border-radius:50%; background:var(--glass); border:1px solid var(--border); display:flex;align-items:center;justify-content:center; font-size:22px;}
+  .highlight span{font-size:11px; color:var(--text-dim);}
+  .tabs{display:flex; border-top:1px solid var(--border); border-bottom:1px solid var(--border); margin-top:4px;}
+  .tab{flex:1; text-align:center; padding:11px; font-size:12px; color:var(--text-mute); position:relative;}
+  .tab.active{color:var(--text);}
+  .tab.active::after{content:""; position:absolute; bottom:-1px; left:30%; right:30%; height:2px; background:linear-gradient(90deg,var(--cyan),var(--violet));}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:2px; padding:2px;}
+  .grid3 .cell{aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; font-size:24px;}
+
+  /* ---------- messages ---------- */
+  .chat-row{display:flex; align-items:center; gap:12px; padding:11px 18px;}
+  .chat-row .avatar{width:50px;height:50px;border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:22px; flex:0 0 auto; position:relative;}
+  .chat-row .online{position:absolute; bottom:1px; right:1px; width:11px;height:11px;border-radius:50%; background:#3ee68b; border:2px solid var(--bg-2);}
+  .chat-row .info{flex:1; min-width:0;}
+  .chat-row .info .top{display:flex; justify-content:space-between; font-size:13.5px;}
+  .chat-row .info .top b{font-weight:600;}
+  .chat-row .info .top .time{color:var(--text-mute); font-size:11px;}
+  .chat-row .info .preview{font-size:12.5px; color:var(--text-mute); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px;}
+  .unread-dot{width:8px;height:8px;border-radius:50%; background:var(--violet); flex:0 0 auto;}
+
+  .thread{display:flex; flex-direction:column; padding:14px 14px 8px; gap:10px;}
+  .bubble{max-width:74%; padding:10px 13px; border-radius:16px; font-size:13.5px; line-height:1.4;}
+  .bubble.them{align-self:flex-start; background:var(--glass); border:1px solid var(--border); border-bottom-left-radius:4px;}
+  .bubble.me{align-self:flex-end; background:linear-gradient(120deg, var(--violet-2), var(--violet)); border-bottom-right-radius:4px;}
+  .bubble.share{padding:8px; display:flex; gap:8px; align-items:center; width:74%;}
+  .bubble.share .thumb{width:44px;height:44px;border-radius:10px; display:flex;align-items:center;justify-content:center; font-size:20px; flex:0 0 auto;}
+  .bubble.share .txt{font-size:12px;}
+  .bubble.share .txt b{display:block; font-size:12.5px;}
+
+  .composer{display:flex; align-items:center; gap:8px; padding:10px 14px; position:sticky; bottom:0; background:linear-gradient(0deg, var(--bg-2) 70%, transparent);}
+  .composer input{flex:1; background:var(--glass); border:1px solid var(--border); border-radius:20px; padding:10px 14px; color:var(--text); font-size:13.5px; outline:none; font-family:'Inter';}
+  .composer input::placeholder{color:var(--text-mute);}
+
+  /* ---------- bottom nav ---------- */
+  .bottomnav{
+    position:absolute; left:0; right:0; bottom:0; height:78px; z-index:6;
+    display:flex; align-items:center; justify-content:space-around;
+    background:rgba(12,9,23,.72); backdrop-filter:blur(18px);
+    border-top:1px solid var(--border);
+    padding-bottom:16px;
+  }
+  .navbtn{display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--text-mute); cursor:pointer; position:relative;}
+  .navbtn.active{color:var(--text);}
+  .navbtn svg{width:23px;height:23px; transition:transform .15s cubic-bezier(.34,1.56,.64,1);}
+  .navbtn.active svg{stroke:url(#navgrad);}
+  .navbtn:active svg{transform:scale(.82);}
+  .navbtn .createbtn{
+    width:40px;height:32px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(120deg, var(--cyan), var(--violet));
+  }
+  .navbtn .createbtn svg{width:19px;height:19px; stroke:#0a0714;}
+
+  /* ---------- AI orb ---------- */
+  .ai-orb{
+    position:absolute; right:18px; bottom:96px; z-index:20;
+    width:56px; height:56px; border-radius:50%; cursor:pointer;
+    background:radial-gradient(circle at 32% 28%, #cdbaff, var(--violet) 45%, #3a2a90 100%);
+    box-shadow:0 0 0 1px rgba(255,255,255,.12), 0 8px 24px rgba(139,107,255,.5), 0 0 40px rgba(139,107,255,.35);
+    display:flex; align-items:center; justify-content:center;
+    animation:orbfloat 4.5s ease-in-out infinite;
+  }
+  @keyframes orbfloat{0%,100%{transform:translateY(0);} 50%{transform:translateY(-7px);}}
+  .ai-orb::before{
+    content:""; position:absolute; inset:-6px; border-radius:50%;
+    border:1.5px solid rgba(51,230,216,.5); animation:orbring 3s linear infinite;
+  }
+  @keyframes orbring{0%{transform:rotate(0);} 100%{transform:rotate(360deg);}}
+  .ai-orb .core{width:16px; height:16px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff, var(--cyan));}
+  .ai-orb.thinking{animation:orbpulse 1s ease-in-out infinite;}
+  @keyframes orbpulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.12);}}
+
+  /* ---------- AI panel ---------- */
+  .ai-panel{
+    position:absolute; inset:0; z-index:30; display:flex; flex-direction:column;
+    background:linear-gradient(180deg, #0c0917, #07050d 60%);
+    transform:translateY(100%); transition:transform .32s cubic-bezier(.22,1,.36,1);
+  }
+  .ai-panel.open{transform:translateY(0);}
+  .ai-head{display:flex; align-items:center; gap:10px; padding:14px 16px 12px; border-bottom:1px solid var(--border);}
+  .ai-head .miniorb{width:30px;height:30px;border-radius:50%; background:radial-gradient(circle at 32% 28%, #cdbaff, var(--violet)); flex:0 0 auto;}
+  .ai-head .t{flex:1;}
+  .ai-head .t b{display:block;font-size:14px;}
+  .ai-head .t span{font-size:11px; color:var(--text-mute);}
+  .ai-body{flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px; scrollbar-width:none;}
+  .ai-body::-webkit-scrollbar{display:none;}
+  .ai-welcome{text-align:center; padding:30px 10px 10px;}
+  .ai-welcome .bigorb{width:64px;height:64px;border-radius:50%; margin:0 auto 14px; background:radial-gradient(circle at 32% 28%, #cdbaff, var(--violet) 45%, #3a2a90); box-shadow:0 0 50px rgba(139,107,255,.4);}
+  .ai-welcome h3{font-family:'Sora'; font-size:17px; margin:0 0 6px; font-weight:700;}
+  .ai-welcome p{font-size:13px; color:var(--text-mute); margin:0 0 18px;}
+  .quick-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .quick{padding:12px; border-radius:14px; background:var(--glass); border:1px solid var(--border); font-size:12.5px; text-align:left; color:var(--text-dim);}
+  .ai-msg{max-width:84%; font-size:13.5px; line-height:1.55;}
+  .ai-msg.user{align-self:flex-end; background:linear-gradient(120deg, var(--violet-2), var(--violet)); padding:10px 14px; border-radius:16px 16px 4px 16px;}
+  .ai-msg.assistant{align-self:flex-start; padding:2px 2px;}
+  .ai-msg.assistant .label{font-size:10.5px; color:var(--text-mute); margin-bottom:4px; letter-spacing:.04em;}
+  .ai-msg ul{margin:6px 0; padding-left:18px;}
+  .ai-msg b{color:#e6dfff;}
+  .thinking-dots{display:flex; gap:4px; padding:6px 2px;}
+  .thinking-dots span{width:6px;height:6px;border-radius:50%; background:var(--text-mute); animation:blink 1.2s infinite;}
+  .thinking-dots span:nth-child(2){animation-delay:.2s;} .thinking-dots span:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:.3;} 40%{opacity:1;}}
+  .ai-composer{display:flex; align-items:center; gap:8px; padding:12px 14px 16px; border-top:1px solid var(--border);}
+  .ai-composer input{flex:1; background:var(--glass); border:1px solid var(--border); border-radius:20px; padding:11px 14px; color:var(--text); font-size:13.5px; outline:none; font-family:'Inter';}
+  .ai-send{width:38px;height:38px;border-radius:50%; background:linear-gradient(120deg,var(--cyan),var(--violet)); display:flex;align-items:center;justify-content:center; flex:0 0 auto; cursor:pointer;}
+  .ai-send svg{width:17px;height:17px; stroke:#0a0714;}
+
+  /* ---------- comment sheet ---------- */
+  .sheet-bg{position:absolute; inset:0; background:rgba(0,0,0,.55); z-index:24; opacity:0; pointer-events:none; transition:opacity .2s;}
+  .sheet-bg.open{opacity:1; pointer-events:auto;}
+  .sheet{
+    position:absolute; left:0; right:0; bottom:0; z-index:25; max-height:70%; 
+    background:var(--bg-2); border-radius:24px 24px 0 0; border:1px solid var(--border); border-bottom:none;
+    transform:translateY(100%); transition:transform .28s cubic-bezier(.22,1,.36,1);
+    display:flex; flex-direction:column;
+  }
+  .sheet.open{transform:translateY(0);}
+  .sheet-handle{width:36px;height:4px;border-radius:2px; background:var(--border); margin:10px auto 4px;}
+  .sheet-title{text-align:center; font-size:13px; font-weight:600; padding:6px 0 10px; border-bottom:1px solid var(--border);}
+  .sheet-body{padding:12px 16px; overflow-y:auto;}
+  .comment{display:flex; gap:10px; margin-bottom:14px;}
+  .comment .avatar{width:32px;height:32px;border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:15px; flex:0 0 auto;}
+  .comment .c-body b{font-size:12.5px;}
+  .comment .c-body p{font-size:12.5px; margin:2px 0 0; color:var(--text-dim); line-height:1.4;}
+  .comment .c-body .c-time{font-size:10.5px; color:var(--text-mute); margin-top:3px;}
+
+  /* toast */
+  .toast{
+    position:absolute; left:50%; bottom:110px; transform:translateX(-50%) translateY(10px); z-index:40;
+    background:rgba(20,16,32,.92); border:1px solid var(--border); backdrop-filter:blur(10px);
+    padding:10px 16px; border-radius:14px; font-size:12.5px; opacity:0; transition:opacity .2s, transform .2s;
+    pointer-events:none; white-space:nowrap;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .avatar-grad{background:linear-gradient(135deg, var(--violet), var(--cyan));}
+  .avatar-grad2{background:linear-gradient(135deg, var(--magenta), var(--violet));}
+  .avatar-grad3{background:linear-gradient(135deg, var(--cyan), #4a6bff);}
+</style>
+</head>
+<body>
+
+<div class="ambient">
+  <div class="orb-bg" style="width:220px;height:220px; left:-60px; top:60px; background:radial-gradient(circle, rgba(139,107,255,.5), transparent 70%);"></div>
+  <div class="orb-bg" style="width:260px;height:260px; right:-80px; bottom:80px; background:radial-gradient(circle, rgba(51,230,216,.4), transparent 70%); animation-delay:2s;"></div>
+</div>
+
+<svg width="0" height="0"><defs><linearGradient id="navgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#33e6d8"/><stop offset="100%" stop-color="#8b6bff"/></linearGradient></defs></svg>
+
+<div class="phone">
+  <div class="statusbar">
+    <span id="clock">9:41</span>
+    <span>NEXA<span class="dot"></span>4D</span>
+    <span>100%</span>
+  </div>
+
+  <div class="screens">
+
+    <!-- HOME -->
+    <section class="screen active" id="screen-home">
+      <div class="topbar">
+        <div class="logo">nexa</div>
+        <div class="topbar-icons">
+          <div class="nano round" onclick="toast('No new activity')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></div>
+          <div class="nano round" onclick="nav('messages')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+        </div>
+      </div>
+      <div class="stories" id="stories"></div>
+      <div id="feed"></div>
+    </section>
+
+    <!-- SEARCH -->
+    <section class="screen" id="screen-search">
+      <div class="topbar"><div class="logo">explore</div></div>
+      <div class="search-bar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Search creators, tags, places" oninput="filterExplore(this.value)"></div>
+      <div class="chips">
+        <div class="chip">#aiart</div><div class="chip">#travel</div><div class="chip">#cyberpunk</div>
+        <div class="chip">#nightsky</div><div class="chip">#foodie</div><div class="chip">#4Ddesign</div>
+      </div>
+      <div class="explore-grid" id="explore"></div>
+    </section>
+
+    <!-- REELS -->
+    <section class="screen" id="screen-reels">
+      <div class="topbar" style="position:absolute; z-index:5; background:none; width:100%;"><div class="logo">reels</div></div>
+      <div class="reels-wrap" id="reels" style="padding-top:54px;"></div>
+    </section>
+
+    <!-- MESSAGES -->
+    <section class="screen" id="screen-messages">
+      <div class="topbar">
+        <div class="logo">messages</div>
+        <div class="topbar-icons"><div class="nano round" onclick="toast('New message')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div></div>
+      </div>
+      <div id="chatlist"></div>
+    </section>
+
+    <!-- THREAD -->
+    <section class="screen" id="screen-thread">
+      <div class="topbar">
+        <div class="nano round" onclick="nav('messages')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
+        <div class="logo" id="thread-name" style="font-size:15px;">chat</div>
+        <div class="nano round" onclick="toast('Call features not in this prototype')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></div>
+      </div>
+      <div class="thread" id="thread-body"></div>
+      <div class="composer">
+        <div class="nano round" style="width:34px;height:34px;" onclick="toast('Attach media')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <input placeholder="Message..." id="thread-input">
+        <div class="nano round" style="width:34px;height:34px;" onclick="openAI('Draft a reply for my chat')">✨</div>
+        <div class="nano round" style="width:34px;height:34px;" onclick="sendThreadMsg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section class="screen" id="screen-profile">
+      <div class="topbar">
+        <div class="logo" style="font-size:15px; -webkit-text-fill-color:var(--text); background:none;">maya.codes</div>
+        <div class="topbar-icons"><div class="nano round" onclick="toast('Settings not in this prototype')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div></div>
+      </div>
+      <div class="profile-head">
+        <div class="profile-avatar"><div>🌙</div></div>
+        <div class="stat-row">
+          <div class="stat"><b>248</b><span>Posts</span></div>
+          <div class="stat"><b>18.2k</b><span>Followers</span></div>
+          <div class="stat"><b>312</b><span>Following</span></div>
+        </div>
+      </div>
+      <div class="profile-bio">
+        <div class="name">Maya Chen</div>
+        <div class="bio">Designing spatial interfaces ✦ AI × motion design ✦ Coimbatore → everywhere</div>
+        <div class="link">nexa.app/maya.codes</div>
+      </div>
+      <div class="profile-actions">
+        <div class="btn primary" onclick="toast('Profile edited')">Edit profile</div>
+        <div class="btn ghost" onclick="toast('Profile shared')">Share profile</div>
+      </div>
+      <div class="highlights">
+        <div class="highlight"><div class="circle">🚀</div><span>Launch</span></div>
+        <div class="highlight"><div class="circle">🎨</div><span>Design</span></div>
+        <div class="highlight"><div class="circle">🌌</div><span>4D</span></div>
+        <div class="highlight"><div class="circle">✈️</div><span>Travel</span></div>
+      </div>
+      <div class="tabs">
+        <div class="tab active">Posts</div>
+        <div class="tab">Reels</div>
+        <div class="tab">Tagged</div>
+      </div>
+      <div class="grid3" id="profile-grid"></div>
+    </section>
+
+  </div>
+
+  <!-- bottom nav -->
+  <div class="bottomnav">
+    <div class="navbtn active" data-tab="home" onclick="nav('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg><span></span></div>
+    <div class="navbtn" data-tab="search" onclick="nav('search')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+    <div class="navbtn" onclick="toast('Create → choose Post / Story / Reel')"><div class="createbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div></div>
+    <div class="navbtn" data-tab="reels" onclick="nav('reels')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M7 4l3 4M12 4l3 4M17 4l3 4"/></svg></div>
+    <div class="navbtn" data-tab="profile" onclick="nav('profile')"><div class="profile-avatar" style="width:23px;height:23px;padding:1.5px;"><div style="font-size:11px;">🌙</div></div></div>
+  </div>
+
+  <!-- AI orb -->
+  <div class="ai-orb" id="aiOrb" onclick="openAI()"><div class="core"></div></div>
+
+  <!-- AI panel -->
+  <div class="ai-panel" id="aiPanel">
+    <div class="ai-head">
+      <div class="miniorb"></div>
+      <div class="t"><b>NEXA AI</b><span>Your intelligent companion</span></div>
+      <div class="nano round" style="width:32px;height:32px;" onclick="closeAI()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+    </div>
+    <div class="ai-body" id="aiBody">
+      <div class="ai-welcome" id="aiWelcome">
+        <div class="bigorb"></div>
+        <h3>What can I help you create?</h3>
+        <p>Ask anything, or try a quick action</p>
+        <div class="quick-grid">
+          <div class="quick" onclick="quickAsk('Write me 3 caption options for a sunset photo, one witty, one poetic, one minimal.')">✨ Generate a caption</div>
+          <div class="quick" onclick="quickAsk('Give me 5 trending-style hashtags for a travel photo of Kyoto.')">🔍 Suggest hashtags</div>
+          <div class="quick" onclick="quickAsk('Write a 30-second reel script hook for a post about productivity tips.')">🎬 Reel script</div>
+          <div class="quick" onclick="quickAsk('Help me write a short, confident bio for my design profile.')">📝 Improve my bio</div>
+        </div>
+      </div>
+    </div>
+    <div class="ai-composer">
+      <input placeholder="Message NEXA AI..." id="aiInput" onkeydown="if(event.key==='Enter')sendAI()">
+      <div class="ai-send" onclick="sendAI()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+    </div>
+  </div>
+
+  <!-- comment sheet -->
+  <div class="sheet-bg" id="sheetBg" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Comments</div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ================= DATA ================= */
+const gradients = [
+  "linear-gradient(135deg,#2b1a55,#8b6bff)",
+  "linear-gradient(135deg,#0e3b3a,#33e6d8)",
+  "linear-gradient(135deg,#4a1035,#ff4fd8)",
+  "linear-gradient(135deg,#1a1f4a,#5b3bff)",
+  "linear-gradient(135deg,#0a2a3d,#33b8e6)",
+  "linear-gradient(135deg,#3a0e2e,#ff4fd8)",
+  "linear-gradient(135deg,#141033,#8b6bff)",
+];
+function grad(i){ return gradients[i % gradients.length]; }
+
+const avatarClasses = ["avatar-grad","avatar-grad2","avatar-grad3"];
+function avClass(i){ return avatarClasses[i % avatarClasses.length]; }
+
+const stories = [
+  {name:"Your story", emoji:"🌙", you:true},
+  {name:"kenji.v", emoji:"🎧"},
+  {name:"aria_moon", emoji:"🌸"},
+  {name:"neo.codes", emoji:"🤖"},
+  {name:"skyler", emoji:"🌊", seen:true},
+  {name:"luma_ai", emoji:"✨"},
+  {name:"wren", emoji:"🍃", seen:true},
+];
+
+const posts = [
+  {name:"kenji.v", emoji:"🎧", place:"Tokyo, Japan", cap:"Chasing neon reflections after the rain. This city never runs out of frames.", likes:"4,201", time:"2 HOURS AGO", comments:[["aria_moon","the color grading here is unreal 😍"],["wren","need this on my wall"]]},
+  {name:"aria_moon", emoji:"🌸", place:"Kyoto, Japan", cap:"Some mornings ask for nothing but stillness and tea.", likes:"2,940", time:"5 HOURS AGO", comments:[["neo.codes","the softest palette"],["skyler","take me with you"]]},
+  {name:"neo.codes", emoji:"🤖", place:"NEXA Labs", cap:"Prototyping the new nano-button spring physics. Feels alive now.", likes:"9,102", time:"9 HOURS AGO", comments:[["luma_ai","the bounce curve is perfect"],["kenji.v","ship it 🚀"]]},
+  {name:"skyler", emoji:"🌊", place:"Gili Islands", cap:"Depth, light, salt. Nothing else today.", likes:"6,733", time:"1 DAY AGO", comments:[["wren","this blue is doing something to me"],["aria_moon","paradise fr"]]},
+];
+
+const reels = [
+  {user:"luma_ai", emoji:"✨", cap:"3 nano-interactions that make an app feel alive ✦", audio:"Original audio · luma_ai", likes:"12.4k", comments:"842"},
+  {user:"neo.codes", emoji:"🌀", cap:"Building a 4D orb in pure CSS, no libraries.", audio:"lofi build beats · dsp.wav", likes:"31.2k", comments:"1.9k"},
+  {user:"wren", emoji:"🍃", cap:"Slow mornings in the greenhouse studio", audio:"soft piano · ambient.mix", likes:"5,204", comments:"210"},
+];
+
+const chats = [
+  {name:"kenji.v", emoji:"🎧", cls:"avatar-grad", preview:"sent a reel", time:"2m", unread:true, online:true},
+  {name:"aria_moon", emoji:"🌸", cls:"avatar-grad2", preview:"that shot is incredible", time:"41m", online:true},
+  {name:"Design Crew", emoji:"🎨", cls:"avatar-grad3", preview:"neo.codes: pushed the update", time:"1h"},
+  {name:"skyler", emoji:"🌊", cls:"avatar-grad", preview:"you: see you saturday!", time:"3h"},
+  {name:"wren", emoji:"🍃", cls:"avatar-grad2", preview:"liked your message ❤️", time:"1d"},
+];
+
+/* ================= RENDER ================= */
+function renderStories(){
+  const el = document.getElementById("stories");
+  el.innerHTML = stories.map(s => `
+    <div class="story ${s.seen?'seen':''} ${s.you?'you':''}">
+      <div class="ring ${s.you?'plus':''}"><div class="avatar">${s.emoji}</div></div>
+      <span>${s.name}</span>
+    </div>`).join("");
+}
+
+function renderFeed(){
+  const el = document.getElementById("feed");
+  el.innerHTML = posts.map((p,i) => `
+    <div class="post">
+      <div class="post-head">
+        <div class="avatar ${avClass(i)}">${p.emoji}</div>
+        <div><div class="name">${p.name}</div><div class="meta">${p.place}</div></div>
+        <div class="nano round more" style="margin-left:auto; width:32px;height:32px;" onclick="postMenu('${p.name}')">⋯</div>
+      </div>
+      <div class="post-img" style="background:${grad(i)};" ondblclick="likeBurst(this, ${i})">
+        <span style="position:relative; z-index:1;">${p.emoji}</span>
+        <div class="burst" id="burst-${i}"></div>
+      </div>
+      <div class="post-actions">
+        <div class="icon-btn" id="like-${i}" onclick="toggleLike(${i})">${ICONSVG.heart}</div>
+        <div class="icon-btn" onclick="openComments(${i})">${ICONSVG.comment}</div>
+        <div class="icon-btn" onclick="toast('Share sheet opened')">${ICONSVG.share}</div>
+        <div class="spacer"></div>
+        <div class="icon-btn" id="save-${i}" onclick="toggleSave(${i})">${ICONSVG.bookmark}</div>
+      </div>
+      <div class="post-likes" id="likecount-${i}">${p.likes} likes</div>
+      <div class="post-caption"><b>${p.name}</b> ${p.cap}</div>
+      <div class="post-comments-link" onclick="openComments(${i})">View all ${p.comments.length + 8} comments</div>
+      <div class="post-time">${p.time}</div>
+    </div>`).join("");
+}
+
+function renderExplore(){
+  const el = document.getElementById("explore");
+  const items = ["🌆","🎨","🌙","🧊","🌊","🦋","🌌","🍜","🏔️","🎧","🌵","💎","🕹️","🌸","🦾"];
+  el.innerHTML = items.map((e,i)=>`
+    <div class="explore-cell ${i===0?'big':''}" style="background:${grad(i)};">${e}</div>
+  `).join("");
+}
+
+function renderReels(){
+  const el = document.getElementById("reels");
+  el.innerHTML = reels.map((r,i)=>`
+    <div class="reel" style="background:${grad(i+2)};">
+      <div class="reel-emoji">${r.emoji}</div>
+      <div class="reel-shade"></div>
+      <div class="reel-info">
+        <div class="user">${r.emoji} ${r.user} <span class="nano pill" style="height:26px; font-size:11px; padding:0 10px;" onclick="toast('Followed '+ '${r.user}')">Follow</span></div>
+        <div class="cap">${r.cap}</div>
+        <div class="audio">♪ ${r.audio}</div>
+      </div>
+      <div class="reel-rail">
+        <div class="icon-btn" id="reellike-${i}" onclick="toggleReelLike(${i})">${ICONSVG.heart}<span class="count">${r.likes}</span></div>
+        <div class="icon-btn" onclick="toast('Comments opened')">${ICONSVG.comment}<span class="count">${r.comments}</span></div>
+        <div class="icon-btn" onclick="toast('Shared reel')">${ICONSVG.share}<span class="count">Share</span></div>
+        <div class="icon-btn" onclick="toast('Saved reel')">${ICONSVG.bookmark}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderChatlist(){
+  const el = document.getElementById("chatlist");
+  el.innerHTML = chats.map((c,i)=>`
+    <div class="chat-row" onclick="openThread(${i})">
+      <div class="avatar ${c.cls}">${c.emoji}${c.online?'<span class="online"></span>':''}</div>
+      <div class="info">
+        <div class="top"><b>${c.name}</b><span class="time">${c.time}</span></div>
+        <div class="preview">${c.preview}</div>
+      </div>
+      ${c.unread?'<div class="unread-dot"></div>':''}
+    </div>
+  `).join("");
+}
+
+function renderProfileGrid(){
+  const el = document.getElementById("profile-grid");
+  const items = ["🌌","🎨","🚀","🧠","🌙","✨","🪐","🔮","💠","🌊","🕸️","🎧"];
+  el.innerHTML = items.map((e,i)=>`<div class="cell" style="background:${grad(i)};">${e}</div>`).join("");
+}
+
+/* ================= ICONS used dynamically ================= */
+const ICONSVG = {
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>',
+  comment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+  bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+};
+
+/* ================= NAV ================= */
+function nav(name){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("screen-"+name).classList.add("active");
+  document.querySelectorAll(".navbtn").forEach(b=>b.classList.remove("active"));
+  const btn = document.querySelector('.navbtn[data-tab="'+name+'"]');
+  if(btn) btn.classList.add("active");
+}
+
+/* ================= FEED INTERACTIONS ================= */
+const likedState = {}, savedState = {};
+function toggleLike(i){
+  likedState[i] = !likedState[i];
+  const btn = document.getElementById("like-"+i);
+  btn.classList.toggle("liked", likedState[i]);
+  const countEl = document.getElementById("likecount-"+i);
+  let base = parseInt(posts[i].likes.replace(/,/g,''));
+  countEl.textContent = (likedState[i] ? base+1 : base).toLocaleString() + " likes";
+  if(likedState[i]) burstAt(document.getElementById("like-"+i));
+}
+function toggleSave(i){
+  savedState[i] = !savedState[i];
+  document.getElementById("save-"+i).classList.toggle("saved", savedState[i]);
+  toast(savedState[i] ? "Saved to collection" : "Removed from saved");
+}
+function toggleReelLike(i){
+  const btn = document.getElementById("reellike-"+i);
+  btn.classList.toggle("liked");
+  burstAt(btn);
+}
+function likeBurst(el, i){
+  if(!likedState[i]) toggleLike(i);
+  const b = document.getElementById("burst-"+i);
+  spawnBurst(b);
+}
+function burstAt(el){
+  spawnBurst(el);
+}
+function spawnBurst(container){
+  container.innerHTML = "";
+  const n = 10;
+  for(let k=0;k<n;k++){
+    const s = document.createElement("span");
+    const angle = (Math.PI*2*k)/n;
+    const dist = 30 + Math.random()*20;
+    s.style.setProperty("--tx", Math.cos(angle)*dist+"px");
+    s.style.setProperty("--ty", Math.sin(angle)*dist+"px");
+    s.style.background = k%2? "var(--magenta)":"var(--violet)";
+    container.appendChild(s);
+  }
+  container.classList.remove("play");
+  void container.offsetWidth;
+  container.classList.add("play");
+}
+function postMenu(name){ toast("More options for "+name); }
+
+/* ================= COMMENTS SHEET ================= */
+function openComments(i){
+  const p = posts[i];
+  const body = document.getElementById("sheetBody");
+  body.innerHTML = p.comments.map(([name,text],idx)=>`
+    <div class="comment">
+      <div class="avatar ${avClass(idx)}" style="display:flex;align-items:center;justify-content:center;">🙂</div>
+      <div class="c-body"><b>${name}</b><p>${text}</p><div class="c-time">${idx+1}h · Reply</div></div>
+    </div>`).join("") + `
+    <div class="comment"><div class="avatar avatar-grad3" style="display:flex;align-items:center;justify-content:center;">🌙</div>
+      <div class="c-body"><b>you</b><p>can't stop looking at this</p><div class="c-time">just now</div></div></div>`;
+  document.getElementById("sheetBg").classList.add("open");
+  document.getElementById("sheet").classList.add("open");
+}
+function closeSheet(){
+  document.getElementById("sheetBg").classList.remove("open");
+  document.getElementById("sheet").classList.remove("open");
+}
+
+/* ================= EXPLORE FILTER ================= */
+function filterExplore(q){ /* purely cosmetic in this prototype */ }
+
+/* ================= MESSAGES / THREAD ================= */
+let currentThread = 0;
+function openThread(i){
+  currentThread = i;
+  const c = chats[i];
+  document.getElementById("thread-name").textContent = c.name;
+  const body = document.getElementById("thread-body");
+  body.innerHTML = `
+    <div class="bubble them">hey! saw your latest post, the lighting is incredible ✨</div>
+    <div class="bubble me">thank you!! shot it right at golden hour</div>
+    <div class="bubble share"><div class="thumb" style="background:${grad(i)};">${c.emoji}</div><div class="txt"><b>Reel</b>${c.name} shared a reel</div></div>
+    <div class="bubble them">${c.preview}</div>
+  `;
+  nav("thread");
+}
+function sendThreadMsg(){
+  const input = document.getElementById("thread-input");
+  const val = input.value.trim();
+  if(!val) return;
+  const body = document.getElementById("thread-body");
+  const b = document.createElement("div");
+  b.className = "bubble me";
+  b.textContent = val;
+  body.appendChild(b);
+  body.scrollTop = body.scrollHeight;
+  input.value = "";
+}
+
+/* ================= TOAST ================= */
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 1800);
+}
+
+/* ================= AI ASSISTANT ================= */
+let aiHistory = [];
+function openAI(prefill){
+  document.getElementById("aiPanel").classList.add("open");
+  if(prefill){
+    document.getElementById("aiInput").value = prefill;
+  }
+}
+function closeAI(){
+  document.getElementById("aiPanel").classList.remove("open");
+}
+function quickAsk(text){
+  document.getElementById("aiInput").value = text;
+  sendAI();
+}
+function mdToHtml(text){
+  let html = text
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+  const lines = html.split("\n");
+  let out = "", inList = false;
+  for(const line of lines){
+    const m = line.match(/^\s*[-*]\s+(.*)/);
+    if(m){
+      if(!inList){ out += "<ul>"; inList = true; }
+      out += "<li>"+m[1]+"</li>";
+    } else {
+      if(inList){ out += "</ul>"; inList = false; }
+      if(line.trim()) out += "<p style='margin:6px 0;'>"+line+"</p>";
+    }
+  }
+  if(inList) out += "</ul>";
+  return out || html;
+}
+async function sendAI(){
+  const input = document.getElementById("aiInput");
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = "";
+  document.getElementById("aiWelcome")?.remove();
+  const body = document.getElementById("aiBody");
+
+  const userMsg = document.createElement("div");
+  userMsg.className = "ai-msg user";
+  userMsg.textContent = text;
+  body.appendChild(userMsg);
+
+  const thinking = document.createElement("div");
+  thinking.className = "ai-msg assistant";
+  thinking.innerHTML = `<div class="label">NEXA AI</div><div class="thinking-dots"><span></span><span></span><span></span></div>`;
+  body.appendChild(thinking);
+  body.scrollTop = body.scrollHeight;
+
+  const orb = document.getElementById("aiOrb");
+  orb.classList.add("thinking");
+
+  aiHistory.push({role:"user", content:text});
+
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: "You are NEXA AI, the friendly, concise, creative assistant embedded inside NEXA, a social media app. Help with captions, hashtags, reel scripts, bios, replies, and creative ideas for the app's users. Keep responses tight, practical, and formatted with short paragraphs or simple bullet lists (using '- ') where useful. No markdown headers.",
+        messages: aiHistory
+      })
+    });
+    const data = await response.json();
+    const textOut = (data.content || []).map(b => b.text || "").join("\n").trim() || "I couldn't generate a response — try rephrasing that.";
+    aiHistory.push({role:"assistant", content:textOut});
+    thinking.innerHTML = `<div class="label">NEXA AI</div>${mdToHtml(textOut)}`;
+  } catch(err){
+    thinking.innerHTML = `<div class="label">NEXA AI</div><p style="color:var(--text-mute);">Something went wrong reaching NEXA AI. Try again.</p>`;
+  } finally {
+    orb.classList.remove("thinking");
+    body.scrollTop = body.scrollHeight;
+  }
+}
+
+/* ================= CLOCK ================= */
+function tickClock(){
+  const d = new Date();
+  let h = d.getHours()%12; if(h===0)h=12;
+  const m = d.getMinutes().toString().padStart(2,"0");
+  document.getElementById("clock").textContent = h+":"+m;
+}
+tickClock(); setInterval(tickClock, 30000);
+
+/* ================= INIT ================= */
+renderStories();
+renderFeed();
+renderExplore();
+renderReels();
+renderChatlist();
+renderProfileGrid();
+</script>
+</body>
+</html>
